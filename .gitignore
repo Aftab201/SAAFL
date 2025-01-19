@@ -1,0 +1,7 @@
+data
+results/emnist-balanced/*
+results/*.csv
+results/*.png
+src/values
+__pycache__/
+.vscode/
