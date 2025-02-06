@@ -55,10 +55,12 @@ class Server(object):
     SS = SSS(PRG.security)
     """the secret sharing scheme"""
 
-    def __init__(self) -> None:
+    # def __init__(self) -> None:
+    def __init__(self, server_key) -> None:
         super().__init__()
         self.step = 0 # the Fl step.
-        self.key = ServerKey(Server.pp, mpz(0)) # the server encryption key for JL (we use zero)
+        # self.key = ServerKey(Server.pp, mpz(0)) # the server encryption key for JL (we use zero)
+        self.key = server_key
         self.U = [] # set of registered user identifiers
         self.Ualive = [] # set of alive users' identifiers 
         self.Y = [] # aggregation result of the users' ciphertext
@@ -88,7 +90,8 @@ class Server(object):
         self.Y = []
         self.delta = 1
 
-    def setup_register(self, alldhpkc, alldhpks):
+    # def setup_register(self, alldhpkc, alldhpks):
+    def setup_register(self, alldhpkc):
         """Setup phase - Register: Sever forwards users registrations. 
         
         ** Args **:
@@ -103,11 +106,12 @@ class Server(object):
         ----------------
         The same public keys (type: `dict`)
         """
-        assert alldhpkc.keys() == alldhpks.keys()
+        # assert alldhpkc.keys() == alldhpks.keys()
         assert len(alldhpkc.keys()) >= Server.threshold
 
         # send for all user public keys
-        return alldhpkc, alldhpks
+        # return alldhpkc, alldhpks
+        return alldhpkc
 
     def setup_keysetup(self, allekshares):
         """Setup phase - KeySetup: Sever forwards the shares of the TJL keys. 

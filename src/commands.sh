@@ -341,3 +341,5 @@ python federated_main.py --dataset=emnist-balanced --epochs=100 --local_ep=10 --
 python federated_main.py --dataset=emnist-balanced --epochs=100 --local_ep=10 --lr=0.01 --frac=0.9 --unequal --num_samples_per_user=2400 --seed=42 --iid --agg_type=fedavg --fedavg_type=unweighted --local_dp --max_grad_norm=7.0 --iid_epsilon=2.0 --non_iid_epsilon=2.0 --delta=1e-5
 
 python federated_main.py --dataset=emnist-balanced --epochs=100 --local_ep=1 --lr=0.01 --frac=0.8 --unequal --num_samples_per_user=2400 --seed=42 --num_unique_classes_non_iid=1 --num_non_iid_users=7 --agg_type=fedla --sec_agg --use_approx_updates
+
+python federated_main.py --dataset=emnist-balanced --epochs=100 --local_ep=10 --lr=0.01 --num_users=100 --frac=0.8 --unequal --num_samples_per_user=1000 --seed=42 --num_unique_classes_non_iid=1 --num_non_iid_users=7 --agg_type=fedla --sec_agg --dropout=20 --first_dropout_epoch=1 --last_dropout_epoch=100 --use_approx_updates

@@ -235,39 +235,50 @@ class Server(object):
         if not self.args.sec_agg:
             self.total_samples_per_class_per_user = {user_id: clients[user_id].get_samples_per_class() for user_id in user_ids}
     
-    def init_sec_agg(self):
-        self.ftsa_server = FTSA_Server()
+    # def init_sec_agg(self, ):
+    #     self.ftsa_server = FTSA_Server()
+    
+    def init_sec_agg(self, server_key):
+        self.ftsa_server = FTSA_Server(server_key)
     
     def setup_sec_agg(self, clients: Mapping[int, Client], participating_ids: List[int]):
         assert self.args.sec_agg == True, 'This method is only available in SecAgg.'
         print('Setting up FTSA scheme for SecAgg')
         key_size, input_size, dimension, threshold = 2048, 32, count_trainable_params(self.model.state_dict()), ceil(0.6 * len(participating_ids))
-        public_params, _, _ = TJLS(len(participating_ids), threshold).Setup(key_size)
+        # public_params, _, _ = TJLS(len(participating_ids), threshold).Setup(key_size)
+        public_params, server_key, user_keys = TJLS(len(participating_ids), threshold).Setup(key_size)
         setup_sec_agg(dimension, input_size, key_size, threshold, len(participating_ids), public_params)
         
         sec_agg_setup_time_server = time.time()
-        self.init_sec_agg()
-        all_pk_s, all_pk_c = {}, {}
+        # self.init_sec_agg()
+        self.init_sec_agg(server_key)
+        # all_pk_s, all_pk_c = {}, {}
+        all_pk_c = {}
         sec_agg_setup_time_server = time.time() - sec_agg_setup_time_server
         
         sec_agg_setup_time_client = time.time()
         for ftsa_uid, user_id in enumerate(participating_ids, start=1):
             clients[user_id].init_sec_agg(ftsa_uid)
-            _, pk_s, pk_c = clients[user_id].ftsa_client.setup_register()
-            all_pk_s[clients[user_id].ftsa_uid] = pk_s
+            # _, pk_s, pk_c = clients[user_id].ftsa_client.setup_register()
+            _, pk_c = clients[user_id].ftsa_client.setup_register(user_keys[user_id - 1])
+            # all_pk_s[clients[user_id].ftsa_uid] = pk_s
             all_pk_c[clients[user_id].ftsa_uid] = pk_c
         sec_agg_setup_time_client = time.time() - sec_agg_setup_time_client
-        sec_agg_setup_data_transfer = sum([getsizeof(all_pk_s[clients[user_id].ftsa_uid]) + getsizeof(all_pk_c[clients[user_id].ftsa_uid]) for user_id in participating_ids])
+        # sec_agg_setup_data_transfer = sum([getsizeof(all_pk_s[clients[user_id].ftsa_uid]) + getsizeof(all_pk_c[clients[user_id].ftsa_uid]) for user_id in participating_ids])
+        sec_agg_setup_data_transfer = sum([getsizeof(all_pk_c[clients[user_id].ftsa_uid]) for user_id in participating_ids])
         
         sec_agg_setup_time_server -= time.time()
-        all_pk_c, all_pk_s = self.ftsa_server.setup_register(all_pk_c, all_pk_s)
+        # all_pk_c, all_pk_s = self.ftsa_server.setup_register(all_pk_c, all_pk_s)
+        all_pk_c = self.ftsa_server.setup_register(all_pk_c)
         all_sk_shares = {}
         sec_agg_setup_time_server += time.time()
-        sec_agg_setup_data_transfer += sum([getsizeof(all_pk_s[clients[user_id].ftsa_uid]) + getsizeof(all_pk_c[clients[user_id].ftsa_uid]) for user_id in participating_ids]) * len(participating_ids)
+        # sec_agg_setup_data_transfer += sum([getsizeof(all_pk_s[clients[user_id].ftsa_uid]) + getsizeof(all_pk_c[clients[user_id].ftsa_uid]) for user_id in participating_ids]) * len(participating_ids)
+        sec_agg_setup_data_transfer += sum([getsizeof(all_pk_c[clients[user_id].ftsa_uid]) for user_id in participating_ids]) * len(participating_ids)
         
         sec_agg_setup_time_client -= time.time()
         for user_id in participating_ids:
-            _, sk_shares = clients[user_id].ftsa_client.setup_keysetup(all_pk_s, all_pk_c)
+            # _, sk_shares = clients[user_id].ftsa_client.setup_keysetup(all_pk_s, all_pk_c)
+            _, sk_shares = clients[user_id].ftsa_client.setup_keysetup(all_pk_c)
             all_sk_shares[clients[user_id].ftsa_uid] = sk_shares
         sec_agg_setup_time_client += time.time()
         sec_agg_setup_data_transfer += sum([getsizeof(all_sk_shares[clients[user_id].ftsa_uid]) for user_id in participating_ids])
@@ -281,7 +292,7 @@ class Server(object):
         for user_id in participating_ids:
             clients[user_id].ftsa_client.setup_keysetup2(all_sk_shares[clients[user_id].ftsa_uid])
         sec_agg_setup_time_client += time.time()
-        print(f'SecAgg setup time (server): {sec_agg_setup_time_server * 1000:.0f} ms')
+        print(f'SecAgg setup time (server): {sec_agg_setup_time_server * 1000000:.0f} μs')
         print(f'SecAgg setup time (avg per client): {sec_agg_setup_time_client * 1000 / len(participating_ids):.0f} ms')
         print(f'SecAgg setup data transfer (per client): {sec_agg_setup_data_transfer / len(participating_ids):.0f} bytes')
         return sec_agg_setup_time_server, (sec_agg_setup_time_client / len(participating_ids))

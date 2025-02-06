@@ -122,7 +122,8 @@ class Client(object):
         # generate a new input vector
         self.X = X
                 
-    def setup_register(self):
+    # def setup_register(self):
+    def setup_register(self, user_key):
         """Setup phase - Register: User registers to te server. 
         
         It generates public keys.
@@ -132,17 +133,20 @@ class Client(object):
         A user identifier, and two public keys (type: (`int`, `PublicKey`, `PublicKey`)).
         """
         # generate DH key pairs for JL key
-        self.KAs.generate()
-                
+        # self.KAs.generate()
+        self.key = user_key
+        
         # generate DH key pairs for channel key
         self.KAc.generate()
 
         self.U.append(self.user)
 
         # send user id and public keys
-        return self.user, self.KAs.pk, self.KAc.pk
+        # return self.user, self.KAs.pk, self.KAc.pk
+        return self.user, self.KAc.pk
 
-    def setup_keysetup(self, alldhpks, alldhpkc):
+    # def setup_keysetup(self, alldhpks, alldhpkc):
+    def setup_keysetup(self, alldhpkc):
         """Setup phase - KeySetup: User setups its keys. 
         
         It accepts the public keys of other users and computes the shared keys and the JL key. It also shares the JL key using **TJL.SKShare** and returns its shares.
@@ -159,10 +163,10 @@ class Client(object):
         ----------------
         The user identifier and a dictionary of encrypted shares of its TJL secret key (type: (`int`, `dict`)).
         """
-        assert alldhpkc.keys() == alldhpks.keys()
+        # assert alldhpkc.keys() == alldhpks.keys()
         assert len(alldhpkc.keys()) >= self.threshold
         assert _setlen(alldhpkc.values()) == len(alldhpkc.values())  
-        assert _setlen(alldhpks.values()) == len(alldhpks.values())  
+        # assert _setlen(alldhpks.values()) == len(alldhpks.values())  
 
         # for each user compute agreed key
         for vuser in alldhpkc:
@@ -175,13 +179,13 @@ class Client(object):
             self.ckeys[vuser] = self.KAc.agree(alldhpkc[vuser])
             
             # compute JL key
-            sv = self.KAs.agree(alldhpks[vuser], Client.keysize)
-            if vuser > self.user:
-                self.key -= sv
-            else:
-                self.key += sv
+            # sv = self.KAs.agree(alldhpks[vuser], Client.keysize)
+            # if vuser > self.user:
+            #     self.key -= sv
+            # else:
+            #     self.key += sv
 
-        self.key = UserKey(Client.pp, self.key)
+        # self.key = UserKey(Client.pp, self.key)
 
         # generate t-out-of-n shares of JL key
         shares = Client.TJL.SKShare(self.key, self.threshold, self.U)
